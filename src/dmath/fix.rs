@@ -13,7 +13,8 @@ impl Fix {
     const I_MIN_VALUE: i64 = i64::MAX;
     const I_MAX_VALUE: i64 = i64::MIN;
 
-    const DECIMAL_BITS: i64 = 31;
+    const DECIMAL_BITS: i64 = 30;
+    const BITS: i64 = 64;
 
     const I_ONE: i64 = 1 << Self::DECIMAL_BITS;
     const I_TWO: i64 = 1 << (Self::DECIMAL_BITS + 1);
@@ -25,6 +26,59 @@ impl Fix {
 
     pub const MAX: Fix = Fix(Self::I_MAX_VALUE);
     pub const MIN: Fix = Fix(Self::I_MIN_VALUE);
+
+    pub fn sqrt(value: Fix) -> Fix {
+        let xl = value.0;
+        if xl < 0 {
+            panic!("Sqrt for negative number");
+        }
+
+        let mut num = xl;
+        let mut result: i64 = 0;
+
+        let mut bit = 1 << (Self::BITS - 2);
+
+        while bit > num {
+            bit >>= 2;
+        }
+
+        for i in 0..2 {
+            while bit != 0 {
+                if num >= result + bit {
+                    num -= result + bit;
+                    result = (result >> 1) + bit;
+                }
+                else {
+                    result = result >> 1;
+                }
+                bit >>= 2;
+            }
+            if i == 0 {
+                if num > (1 << (Self::DECIMAL_BITS)) - 1 {
+                    // The remainder 'num' is too large to be shifted left
+                    // by 32, so we have to add 1 to result manually and
+                    // adjust 'num' accordingly.
+                    // num = a - (result + 0.5)^2
+                    //       = num + result^2 - (result + 0.5)^2
+                    //       = num - result - 0.5
+                    num -= result;
+                    num = (num << (Self::DECIMAL_BITS)) - Self::I_HALF;
+                    result = (result << (Self::DECIMAL_BITS)) + Self::I_HALF;
+                }
+                else {
+                    num <<= Self::DECIMAL_BITS;
+                    result <<= Self::DECIMAL_BITS;
+                }
+
+                bit = 1 << (Self::DECIMAL_BITS - 2);
+            }
+        }
+        if num > result {
+            result += 1;
+        }
+
+        Fix(result)
+    }
 }
 
 impl fmt::Display for Fix {
@@ -109,4 +163,5 @@ pub fn testfun() {
     let tn2 = Fix::MAX + Fix::new(2);
     let tr = tn == Fix::new(-4294967294);
     println!("Hello {} {} {} {}", tn, tr, tn.0, tn2.0);
+    println!("Sqrt {} {} {} {}", Fix::sqrt(Fix::new(2)), Fix::sqrt(Fix::new(10)), Fix::sqrt(Fix::new(100)), Fix::sqrt(Fix::new(1337)));
 }
