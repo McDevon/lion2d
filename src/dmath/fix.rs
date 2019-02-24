@@ -10,6 +10,59 @@ impl Fix {
         Fix(value * Fix::I_ONE)
     }
 
+    pub fn from_str(value: &str) -> Fix {
+        if value.len() == 0 {
+            return Fix(0);
+        }
+
+        let mut rez = Self::ZERO;
+        let mut dez = Self::ZERO;
+        let mut divider = Self::ONE;
+        let mut fact = Self::ONE;
+
+        let mut minus_seen = false;
+        let mut digit_seen = false;
+        let mut decimals_seen = -1;
+
+        let max_decimals = 2f64.powf(Self::DECIMAL_BITS as f64).log(10f64) as i64;
+
+        for ch in value.chars() {
+            if decimals_seen >= max_decimals {
+                break;
+            }
+            if ch == '-' {
+                if minus_seen || digit_seen || decimals_seen >= 0 {
+                    return Fix(0);
+                }
+                minus_seen = true;
+                fact = -fact;
+                continue;
+            }
+            if ch == '.' {
+                if decimals_seen >= 0 {
+                    return Fix(0);
+                }
+                decimals_seen = 0;
+                continue;
+            }
+            if !ch.is_digit(10) {
+                return Fix(0);
+            }
+            if !digit_seen {
+                digit_seen = true;
+            }
+            if decimals_seen >= 0 {
+                dez = dez * Fix::TEN + Fix::new(i64::from(ch.to_digit(10).unwrap_or(0)));
+                divider = divider * Fix::TEN;
+                decimals_seen += 1;
+            } else {
+                rez = rez * Fix::TEN + Fix::new(i64::from(ch.to_digit(10).unwrap_or(0)));
+            }
+        }
+
+        (rez + dez / divider) * fact
+    }
+
     const I_MIN_VALUE: i64 = i64::MAX;
     const I_MAX_VALUE: i64 = i64::MIN;
 
@@ -20,12 +73,20 @@ impl Fix {
     const I_TWO: i64 = 1 << (Self::DECIMAL_BITS + 1);
     const I_HALF: i64 = 1 << (Self::DECIMAL_BITS - 1);
 
+    pub const ZERO: Fix = Fix(0);
     pub const ONE: Fix = Fix(Self::I_ONE);
     pub const TWO: Fix = Fix(Self::I_TWO);
     pub const HALF: Fix = Fix(Self::I_HALF);
+    pub const TEN: Fix = Fix(Self::I_ONE * 10);
 
     pub const MAX: Fix = Fix(Self::I_MAX_VALUE);
     pub const MIN: Fix = Fix(Self::I_MIN_VALUE);
+
+    pub const PI: Fix = Fix(3373259425);
+    pub const PI_TIMES_TWO: Fix = Fix(6746518852);
+    pub const PI_OVER_TWO: Fix = Fix(1686629712);
+    pub const PI_INVERTED: Fix = Fix(341782637);
+    pub const PI_OVER_TWO_INVERTED: Fix = Fix(683565275);
 
     pub fn sqrt(value: Fix) -> Fix {
         let xl = value.0;
