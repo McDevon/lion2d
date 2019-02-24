@@ -1,6 +1,7 @@
 use std::ops;
 use std::fmt;
 use std::i64;
+use std::u64;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Fix(i64);
@@ -68,6 +69,7 @@ impl Fix {
 
     const DECIMAL_BITS: i64 = 30;
     const BITS: i64 = 64;
+    const DECIMAL_MASK: i64 = (u64::MAX >> (Self::BITS - Self::DECIMAL_BITS)) as i64;
 
     const I_ONE: i64 = 1 << Self::DECIMAL_BITS;
     const I_TWO: i64 = 1 << (Self::DECIMAL_BITS + 1);
@@ -88,10 +90,50 @@ impl Fix {
     pub const PI_INVERTED: Fix = Fix(341782637);
     pub const PI_OVER_TWO_INVERTED: Fix = Fix(683565275);
 
+    pub const DEG_TO_RAD: Fix = Fix(18740330);
+    pub const RAD_TO_DEG: Fix = Fix(61520874822);
+
+    pub fn sign(value: Fix) -> Fix {
+        if value.0 < 0 {
+            -Self::ONE
+        } else if value.0 > 0 {
+            Self::ONE
+        } else {
+            Self::ZERO
+        }
+    }
+
     pub fn abs(value: Fix) -> Fix {
         let mask = value.0 >> (Self::BITS - 1);
-		return Fix((value.0 + mask) ^ mask);
+		Fix((value.0 + mask) ^ mask)
     }
+
+    pub fn to_radians(&self) -> Fix {
+        *self * Self::DEG_TO_RAD
+    }
+
+    pub fn to_degrees(&self) -> Fix {
+        *self * Self::RAD_TO_DEG
+    }
+
+    pub fn floor(value: Fix) -> Fix {
+        Fix(value.0 & (!Self::DECIMAL_MASK))
+    }
+	 
+    pub fn ceiling(value: Fix) -> Fix {
+        let hasFrac = (value.0 & Self::DECIMAL_MASK) != 0;
+        if hasFrac { Self::floor(value) + Self::ONE } else { value }
+    }
+	
+	pub fn round(value: Fix) -> Fix {
+		let fract = value.0 & Self::DECIMAL_MASK;
+        let integral = Self::floor(value);
+        if fract < Self::I_HALF {
+            return integral;
+        }
+        // Halves are always rounded upwards
+        return integral + Self::ONE;
+	}
 
     pub fn sqrt(value: Fix) -> Fix {
         let xl = value.0;
@@ -248,19 +290,11 @@ impl ops::Rem<Fix> for Fix {
 }
 
 /*
-dnum d_sign(dnum a);
-dnum d_abs(dnum a);
-dnum d_floor(dnum a);
-dnum d_ceil(dnum a);
-dnum d_round(dnum a);
 
 dnum d_sin(dnum a);
 dnum d_cos(dnum a);
 dnum d_tan(dnum a);
-dnum d_atan2(dnum y, dnum x);
-
-dnum d_to_degrees(dnum a);
-dnum d_to_radians(dnum a);*/
+*/
 
 pub fn testfun() {
     let tn = Fix::MAX + Fix::new(2);
