@@ -54,7 +54,7 @@ impl Fix {
             }
             if decimals_seen >= 0 {
                 dez = dez * Fix::TEN + Fix::new(i64::from(ch.to_digit(10).unwrap_or(0)));
-                divider = divider * Fix::TEN;
+                divider *= Fix::TEN;
                 decimals_seen += 1;
             } else {
                 rez = rez * Fix::TEN + Fix::new(i64::from(ch.to_digit(10).unwrap_or(0)));
@@ -244,12 +244,26 @@ impl ops::Add<Fix> for Fix {
     }
 }
 
+impl ops::AddAssign<Fix> for Fix {
+    #[inline(always)]
+    fn add_assign(&mut self, _rhs: Fix) {
+        *self = *self + _rhs;
+    }
+}
+
 impl ops::Sub<Fix> for Fix {
     type Output = Fix;
 
     #[inline(always)]
     fn sub(self, _rhs: Fix) -> Fix {
         Fix(self.0 - _rhs.0)
+    }
+}
+
+impl ops::SubAssign<Fix> for Fix {
+    #[inline(always)]
+    fn sub_assign(&mut self, _rhs: Fix) {
+        *self = *self - _rhs;
     }
 }
 
@@ -271,12 +285,27 @@ impl ops::Mul<Fix> for Fix {
     }
 }
 
+impl ops::MulAssign<Fix> for Fix {
+    #[inline(always)]
+    fn mul_assign(&mut self, _rhs: Fix) {
+        *self = *self * _rhs;
+    }
+}
+
+
 impl ops::Div<Fix> for Fix {
     type Output = Fix;
 
     #[inline(always)]
     fn div(self, _rhs: Fix) -> Fix {
         Fix((((self.0 as i128) << Fix::DECIMAL_BITS) / (_rhs.0 as i128)) as i64)
+    }
+}
+
+impl ops::DivAssign<Fix> for Fix {
+    #[inline(always)]
+    fn div_assign(&mut self, _rhs: Fix) {
+        *self = *self / _rhs;
     }
 }
 
