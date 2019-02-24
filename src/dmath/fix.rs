@@ -2,7 +2,7 @@ use std::ops;
 use std::fmt;
 use std::i64;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Fix(i64);
 
 impl Fix {
@@ -88,6 +88,11 @@ impl Fix {
     pub const PI_INVERTED: Fix = Fix(341782637);
     pub const PI_OVER_TWO_INVERTED: Fix = Fix(683565275);
 
+    pub fn abs(value: Fix) -> Fix {
+        let mask = value.0 >> (Self::BITS - 1);
+		return Fix((value.0 + mask) ^ mask);
+    }
+
     pub fn sqrt(value: Fix) -> Fix {
         let xl = value.0;
         if xl < 0 {
@@ -139,6 +144,44 @@ impl Fix {
         }
 
         Fix(result)
+    }
+
+    const ATAN2_HELP: Fix = Fix(300647710); // 0.28
+
+    pub fn atan2(y: Fix, x: Fix) -> Fix {
+        // Approximate atan2 with error < 0.005
+        let yl = y.0;
+        let xl = x.0;
+
+        if xl == 0 {
+            if yl > 0 {
+                return Self::PI_OVER_TWO;
+            }
+            if yl == 0 {
+                return Self::ZERO;
+            }
+            return -Self::PI_OVER_TWO;
+        }
+
+        let atan: Fix;
+        let z = y / x;
+        let divider = Fix::ONE + (Fix::ATAN2_HELP * z * z);
+
+        if Fix::abs(z) < Fix::ONE {
+            atan = z / divider;
+            if xl < 0 {
+                if yl < 0 {
+                    return atan - Self::PI;
+                }
+                return atan + Self::PI;
+            }
+        } else {
+            atan = Self::PI_OVER_TWO - (z / (z * z + Self::ATAN2_HELP));
+            if yl < 0 {
+                return atan - Self::PI;
+            }
+        }
+        atan
     }
 }
 
