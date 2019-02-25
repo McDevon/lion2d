@@ -318,6 +318,54 @@ impl ops::Rem<Fix> for Fix {
     }
 }
 
+impl From<Fix> for f64 {
+    fn from(value: Fix) -> Self {
+        (value.0 as f64) / (Fix::I_ONE as f64)
+    }
+}
+
+impl From<Fix> for f32 {
+    fn from(value: Fix) -> Self {
+        (value.0 as f32) / (Fix::I_ONE as f32)
+    }
+}
+
+impl From<Fix> for i32 {
+    fn from(value: Fix) -> Self {
+        (value.0 as i32) / (Fix::I_ONE as i32)
+    }
+}
+
+impl From<Fix> for i64 {
+    fn from(value: Fix) -> Self {
+        value.0 / Fix::I_ONE
+    }
+}
+
+impl From<f64> for Fix {
+    fn from(value: f64) -> Self {
+        Fix((value * (Self::I_ONE as f64)) as i64)
+    }
+}
+
+impl From<f32> for Fix {
+    fn from(value: f32) -> Self {
+        Fix((value * (Self::I_ONE as f32)) as i64)
+    }
+}
+
+impl From<i32> for Fix {
+    fn from(value: i32) -> Self {
+        Fix((value * (Self::I_ONE as i32)) as i64)
+    }
+}
+
+impl From<i64> for Fix {
+    fn from(value: i64) -> Self {
+        Fix(value * Self::I_ONE)
+    }
+}
+
 /*
 
 dnum d_sin(dnum a);
