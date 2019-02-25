@@ -71,6 +71,8 @@ impl Fix {
     const BITS: i64 = 64;
     const DECIMAL_MASK: i64 = (u64::MAX >> (Self::BITS - Self::DECIMAL_BITS)) as i64;
 
+    const LUT_SIZE: i64 = 2048;
+
     const I_ONE: i64 = 1 << Self::DECIMAL_BITS;
     const I_TWO: i64 = 1 << (Self::DECIMAL_BITS + 1);
     const I_HALF: i64 = 1 << (Self::DECIMAL_BITS - 1);
@@ -224,6 +226,44 @@ impl Fix {
             }
         }
         atan
+    }
+
+    pub fn sin(&self) -> Fix {
+        let rawangle = self.0;
+		
+		let mut clamp_2_pi = rawangle % Self::PI_TIMES_TWO.0;
+		if rawangle < 0 {
+			clamp_2_pi += Self::PI_TIMES_TWO.0;
+        }
+		
+		let flip_v = clamp_2_pi >= Self::PI.0;
+		let mut clamp_pi = clamp_2_pi;
+		
+		while clamp_pi >= Self::PI.0 {
+            clamp_pi -= Self::PI.0;
+        }
+		
+        let flip_h = clamp_pi >= Self::PI_OVER_TWO.0;
+        let mut clamp_pi_per_2 = clamp_pi;
+        if clamp_pi_per_2 >= Self::PI_OVER_TWO.0 {
+            clamp_pi_per_2 -= Self::PI_OVER_TWO.0;
+		}
+        
+        let mut index = clamp_pi_per_2 * Self::LUT_SIZE / Self::PI_OVER_TWO.0;
+        if index >= Self::LUT_SIZE {
+            index = Self::LUT_SIZE - 1;
+        }
+        
+        let result = super::lookup::SIN_LUT[
+            (if flip_h { Self::LUT_SIZE - 1 - index } else { index }) as usize
+            ];
+        Fix(if flip_v { -result } else { result })
+    }
+
+    pub fn cos(&self) -> Fix {
+        let vd = self.0;
+        let sin_angle = vd + ( if vd > 0 { -Self::PI.0 - Self::PI_OVER_TWO.0 } else { Self::PI_OVER_TWO.0 });
+        Fix(sin_angle).sin()
     }
 }
 
