@@ -265,6 +265,29 @@ impl Fix {
         let sin_angle = vd + ( if vd > 0 { -Self::PI.0 - Self::PI_OVER_TWO.0 } else { Self::PI_OVER_TWO.0 });
         Fix(sin_angle).sin()
     }
+
+    pub fn tan(&self) -> Fix {
+        let mut clamp_pi = self.0 % Self::PI.0;
+        let mut flip = false;
+        if clamp_pi < 0 {
+            clamp_pi = -clamp_pi;
+            flip = true;
+        }
+
+        if clamp_pi > Self::PI_OVER_TWO.0 {
+            flip = !flip;
+            clamp_pi = Self::PI_OVER_TWO.0 - (clamp_pi - Self::PI_OVER_TWO.0);
+        }
+
+        let mut index = clamp_pi * Self::LUT_SIZE / Self::PI_OVER_TWO.0;
+        if index >= Self::LUT_SIZE {
+            index = Self::LUT_SIZE - 1;
+        }
+        
+        let result = super::lookup::TAN_LUT[index as usize];
+
+        Fix(if flip { -result } else { result })
+    }
 }
 
 impl fmt::Display for Fix {
@@ -405,13 +428,6 @@ impl From<i64> for Fix {
         Fix(value * Self::I_ONE)
     }
 }
-
-/*
-
-dnum d_sin(dnum a);
-dnum d_cos(dnum a);
-dnum d_tan(dnum a);
-*/
 
 pub fn testfun() {
     let tn = Fix::MAX + Fix::new(2);
